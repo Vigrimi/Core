@@ -55,9 +55,8 @@ public class ComplexExamples {
             new Person(4, "Jack"),
             new Person(5, "Amelia"),
             new Person(5, "Amelia"),
-            new Person(6, "Amelia"),
-            new Person(7, "Amelia"),
-
+            new Person(6, "Amelia"), // "Amelia"
+            new Person(7, "Amelia"), // "Amelia"
     };
         /*  Raw data:
 
@@ -118,11 +117,6 @@ public class ComplexExamples {
                 Key: Jack
                 Value:1
          */
-        // в данной ситуации проверка массивов на null излишняя, но лучше сделать, так как может быть через год
-        // поменяют логику и массивы будут приходить в метод откуда-то извне, а там возможно забудет кто-то сделать
-        // проверки на null
-
-        // Убрать дубликаты, отсортировать по идентификатору Id
         System.out.println("\nTask1.");
         String JOHN_DOE = "JohnDoeNull";
 
@@ -131,20 +125,11 @@ public class ComplexExamples {
         } else {
             Set<Person> resultTask1 = Arrays.stream(RAW_DATA).sorted(Comparator.comparing(Person::getId))
                     .collect(Collectors.toCollection(LinkedHashSet::new));
-//            System.out.println("resultTask1: " + resultTask1);
-
-            // сгруппировать по имени
             TreeMap<String, Integer> countMap = new TreeMap<>();
             for (Person person : resultTask1) {
-                if (person.getName() == null) {
-                    countMap.put(JOHN_DOE, countMap.getOrDefault(JOHN_DOE, 0) + 1);
-                } else {
-                    countMap.put(person.getName(), countMap.getOrDefault(person.getName(), 0) + 1);
-                }
+                countMap.put(Optional.ofNullable(person.getName()).orElse(JOHN_DOE)
+                        ,countMap.getOrDefault(Optional.ofNullable(person.getName()).orElse(JOHN_DOE), 0) + 1);
             }
-//        System.out.println("countMap: " + countMap);
-
-            // Что должно получиться
             countMap.forEach((key, value) -> System.out.println("Key:" + key + "\nValue:" + value));
         }
 
@@ -162,23 +147,16 @@ public class ComplexExamples {
             System.out.println("Упс, входные данные - массив null, попробуйте позже -_-");
         } else {
             boolean possibleTask2 = false;
+            Hashtable<Integer, Integer> hashtable = new Hashtable();
             for (int i = 0; i < incomingArray.length; i++) {
-                result[FIRST_ELEMENT] = incomingArray[i];
-                for (int j = 0; j < incomingArray.length; j++) {
-                    // чтобы не складывать число само с собой и не выпасть IndexOutOfBound
-                    if (j == i && (j < incomingArray.length-1)) j++;
-                    // чтобы не складывать последнее число в массиве само с собой
-                    if (j == i && i == incomingArray.length-1) break;
-                    // поиск нужной комбинации
-                    if (incomingArray[i] + incomingArray[j] == sum10){
-                        result[SECOND_ELEMENT] = incomingArray[j];
-                        possibleTask2 = true;
-                        // поиск второго элемента завершён, можно остановить
-                        break;
-                    }
+                if (hashtable.containsKey(sum10-incomingArray[i])){
+                    result[FIRST_ELEMENT] = incomingArray[hashtable.get(sum10-incomingArray[i])];
+                    result[SECOND_ELEMENT] = incomingArray[i];
+                    possibleTask2 = true;
+                    break;
+                } else {
+                    hashtable.put(incomingArray[i], i);
                 }
-                // поиск пары элементов завершён, можно остановить
-                if (possibleTask2) break;
             }
             System.out.println("\nTask2.");
             System.out.println(possibleTask2 ? Arrays.toString(result) : "Не существует пары, которая даёт сумму = 10.");
@@ -205,31 +183,18 @@ public class ComplexExamples {
         System.out.println("\nTask3.");
         BiFunction<String, String, String> fuzzySearch = (s1, s2) -> {
             String s2Incoming = s2;
-            boolean possibleTask3 = false;
-            // проверяем оба элемента на null и что первый - короче или равен второму по количеству символов
-            if (s1 != null && s2 != null){
-                if (s1.length() <= s2.length()){
-                    char[] s1CharArray = s1.toCharArray();;
-                    // поиск
-                    int qtyEquals = 0;
-                    for (int i = 0; i < s1CharArray.length; i++) {
-                        if (s2.contains(String.valueOf(s1CharArray[i]))){
-                            // считаем кол-во совпадений
-                            qtyEquals++;
-                            // поиск был удачный - можем сделать окончательный вывод, можно останавливать
-                            if (qtyEquals == s1CharArray.length){
-                                possibleTask3 = true;
-                                break;
-                            }
-                            // находим порядковое значение найденного символа из первого слова - во втором
-                            int order = s2.indexOf(String.valueOf(s1CharArray[i]));
-                            // убираем из второго слова всё от начала до найденного символа вместе с самим символом
-                            s2 = s2.substring(order+1);
-                        }
+            int qtyEquals = 0;
+            if ((s1.length() <= s2.length()) && s1 != null && s2 != null) {
+                char[] s1CharArray = s1.toCharArray();
+                for (int i = 0; i < s1CharArray.length; i++) {
+                     if (s2.contains(String.valueOf(s1CharArray[i]))) {
+                        qtyEquals++;
+                        int order = s2.indexOf(String.valueOf(s1CharArray[i]));
+                        s2 = s2.substring(order + 1);
                     }
                 }
             }
-            return "\"" + s1 + "\"-=AND=-\"" + s2Incoming + "\": " + possibleTask3;
+            return "\"" + s1 + "\"-=AND=-\"" + s2Incoming + "\": " + (qtyEquals == s1.length());
         };
 
         if (frazesForSearch == null){
